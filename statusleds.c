@@ -53,7 +53,7 @@ int iOnDuration = 1;
 int iOffDuration = 10;
 int iOnPauseDuration = 5; 
 bool bPerRecordBlinking = false;
-char * sConsole = "/dev/console";
+const char * sConsole = "/dev/console";
 int iRecordings = 0;
 int iConsole = 0;
 bool bActive = false;
@@ -504,7 +504,7 @@ void cStatusUpdate::Recording(const cDevice *Device, const char *Name)
 
 void Blinkd(bool forceOff)
 {
-  static char * Leds[] = { "-s", "-n", "-c" };
+  static const char * Leds[] = { "-s", "-n", "-c" };
   char Cmd[100];
 
   sprintf(Cmd, "blink %s -r %d -m %s", Leds[iLed],
@@ -529,8 +529,9 @@ void cRecordingPresignal::Action(void)
   for(active = true; active;)
   {
     // get next timer
-    cTimer * NextTimer = Timers.GetNextActiveTimer();
-
+    {
+    LOCK_TIMERS_READ;
+    const cTimer * NextTimer = Timers->GetNextActiveTimer();
 
     if (iConsole >= 0 && NextTimer)
     {
@@ -557,6 +558,7 @@ void cRecordingPresignal::Action(void)
           LastTime = StartTime;
         }
       }
+    }
     }
 
     sleep(1);
