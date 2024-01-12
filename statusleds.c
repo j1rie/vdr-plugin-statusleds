@@ -19,8 +19,8 @@
 
 extern char **environ;
 
-static const char *VERSION        = "0.3";
-static const char *DESCRIPTION    = "show vdr status over kbd led's";
+static const char *VERSION        = "0.3_irmp";
+static const char *DESCRIPTION    = "show vdr status over kbd led's and irmp led";
 
 class cStatusUpdate : public cThread, public cStatus {
 private:
@@ -64,6 +64,7 @@ int iPrewarnBeeps = 3;
 int iPrewarnBeepPause = 500;
 bool bPrewarnBeep = false;
 int iPrewarnBeepTime = 120;
+const char * stm32IRstatusled_path = NULL;
 
 bool bBlinkdUsed = false;
 
@@ -265,6 +266,7 @@ const char *cPluginStatusLeds::CommandLineHelp(void)
 "  -c console, --console=console              Console LED attached to\n"
 "  -w [time,beeps,pause],                     Presignal records\n"
 "     --prewarn[=Time,Beeps,Pause]\n" 
+"  -i stm32IRstatusled_path, --stm32IRstatusled_path=stm32IRstatusled_path  stm32IRstatusled_path\n"
 ;
 }
 
@@ -278,11 +280,12 @@ bool cPluginStatusLeds::ProcessArgs(int argc, char *argv[])
        { "console",		required_argument,	NULL, 'c' },
        { "blinkd",		optional_argument,	NULL, 'b' },
        { "prewarn",		optional_argument,	NULL, 'w' },
-       { NULL }
+       { "stm32IRstatusled_path", required_argument,	NULL, 'i' },
+       { NULL,			no_argument,		NULL, 0 }
      };
 
   int c;
-  while ((c = getopt_long(argc, argv, "l:d:pc:b:w:", long_options, NULL)) != -1) {
+  while ((c = getopt_long(argc, argv, "l:d:pc:b:w:i:", long_options, NULL)) != -1) {
         switch (c) {
           case 'l':
 	    iLed = atoi(optarg);
@@ -324,6 +327,9 @@ bool cPluginStatusLeds::ProcessArgs(int argc, char *argv[])
 	    if (optarg && *optarg)
               sscanf(optarg, "%d,%d,%d", &iPrewarnBeepTime, &iPrewarnBeeps, &iPrewarnBeepPause);
 	    break;
+	  case 'i':
+	    stm32IRstatusled_path = optarg;
+	    break;
           default:
 	    return false;
           }
@@ -352,6 +358,9 @@ void cStatusUpdate::Action(void)
 {
     dsyslog("Status LED's: Thread started (pid=%d)", getpid());
     
+      cString cmd_on = cString::sprintf("%s -s 1", stm32IRstatusled_path);
+      cString cmd_off = cString::sprintf("%s -s 0", stm32IRstatusled_path);
+
     // Open console
     iConsole = open(sConsole, 2);
     if (iConsole < 0)
@@ -362,6 +371,7 @@ void cStatusUpdate::Action(void)
       int OldLed;
       char State;
       bool blinking = false;
+      SystemExec(cmd_on, true);
   
       for(bActive = true; bActive;)
       {
@@ -375,10 +385,12 @@ void cStatusUpdate::Action(void)
   	  {
   	    ioctl(iConsole, KDGETLED, &State);
             ioctl(iConsole, KDSETLED, State | (1 << iLed));
+            SystemExec(cmd_on, true);
             usleep(iOnDuration * 100000);
         
             ioctl(iConsole, KDGETLED, &State);
             ioctl(iConsole, KDSETLED, State & ~(1 << OldLed));
+            SystemExec(cmd_off, true);
             usleep(iOnPauseDuration * 100000);
   	  }
           usleep(iOffDuration * 100000);
@@ -388,6 +400,7 @@ void cStatusUpdate::Action(void)
           if(blinking){
             ioctl(iConsole, KDGETLED, &State);
             ioctl(iConsole, KDSETLED, State | (1 << iLed));
+            SystemExec(cmd_on, true);
             blinking = false;
           }
           sleep(1);
@@ -396,6 +409,7 @@ void cStatusUpdate::Action(void)
     }
     
     ioctl(iConsole, KDSETLED, 0); // turn all off
+    SystemExec(cmd_off, true);
     dsyslog("Status LED's: Thread ended (pid=%d)", getpid());
 }
 
