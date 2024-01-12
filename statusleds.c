@@ -288,7 +288,7 @@ bool cPluginStatusLeds::ProcessArgs(int argc, char *argv[])
 	    iLed = atoi(optarg);
 	    if (iLed < 0 || iLed > 2)
               iLed = 0;
-              break;
+            break;
           case 'd':
 	    iOnDuration = 1;
 	    iOffDuration = 10;
@@ -361,12 +361,16 @@ void cStatusUpdate::Action(void)
       // Let the LED's blink ...
       int OldLed;
       char State;
+      bool blinking = false;
   
       for(bActive = true; bActive;)
       {
         OldLed = iLed;
         if (!bUseBlinkd && iRecordings > 0)
         {
+          if(!blinking){
+            blinking = true;
+          }
   	  for(int i = 0; i < (bPerRecordBlinking ? iRecordings : 1) && bActive; i++)
   	  {
   	    ioctl(iConsole, KDGETLED, &State);
@@ -380,10 +384,18 @@ void cStatusUpdate::Action(void)
           usleep(iOffDuration * 100000);
         }
         else
-  	  sleep(1);
+        {
+          if(blinking){
+            ioctl(iConsole, KDGETLED, &State);
+            ioctl(iConsole, KDSETLED, State | (1 << iLed));
+            blinking = false;
+          }
+          sleep(1);
+        }
       }
     }
     
+    ioctl(iConsole, KDSETLED, 0); // turn all off
     dsyslog("Status LED's: Thread ended (pid=%d)", getpid());
 }
 
