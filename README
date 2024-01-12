@@ -1,0 +1,125 @@
+This is a "plugin" for the Video Disk Recorder (VDR).
+
+Written by:                  Bernd Juraschek <statusleds@bjusystems.de>
+
+Project's homepage:          http://sourceforge.net/projects/vdr-statusleds
+
+Latest version available at: http://sourceforge.net/projects/vdr-statusleds
+
+See the file COPYING for license information.
+
+Version:                     0.2
+
+Description:
+
+This plugin signals the recording vdr via keyboard leds.
+
+History:
+========
+
+0.3
+
+- Adding -fPIC to the compiler options
+- Make it compatible with vdr >= 1.3.38
+
+0.2
+
+- Fixed Makefile error
+
+0.1
+- Fixed includes (missing vdr prefix) (thanks to Tobias Grimm)
+- Buffer for blinkd host now 256 bytes (tanks to Tobias Grimm)
+- Shorter version numbering
+
+0.0.7
+- VDR now can presignal recordings using console beeps
+
+0.0.6
+- The OSD settings for using blinkd and per record blinking are now
+  taken correctly from setup.conf (thanks to Heiko Meyer).
+
+0.0.5
+- The plugin now compiles with vdr 1.3.0
+
+0.0.4
+- Now it's possible to use blinkd for remote signaling
+
+0.0.3
+- Inserted some missing command line argument handling
+- New command line argument "-c console"
+         
+0.0.2
+- Fixed crash at stopping vdr
+
+0.0.1
+- First release
+
+
+Requirements:
+=============
+
+- vdr 1.2.x (1.1.x should be work also)
+- vdr running as superuser (for console access)
+- if you want to use blinkd, blink and blinkd must be installed
+
+
+Installation and Compilation:
+=============================
+
+- cd $VDR/PLUGINS/src
+- Extract statusleds-*.tgz
+- ln -s statusleds-* statusleds
+- cd $VDR
+- make plugins
+
+
+Running the plugin:
+===================
+
+- Append -Pstatusleds to the vdr commandline 
+- Append plugin parameters, if you don't want to use the OSD
+
+  -l led, --led=led               Sets the status led to use
+                                  Possible values:
+                                     0: Scroll
+				     1: Num
+				     2: Caps
+				  Default: Num
+
+  -d timing, --duration=timing    Sets the timing values in 100ms
+                                  Format: on-time,off-time,on-pause-time
+				  Default: 1,10,5
+
+  -p, --perrecordblinking         Enables record count siganlisation
+
+  -b [host[:port]], --blinkd[=host[:port]]
+                                  Use blinkd for controlling LEDs
+
+
+How active recordings will be signaled:
+=======================================
+
+- If recordings are active, the selected led is blinking:
+  - Blinking per record is disabled:
+    - The led is on for on-time
+    - The led is off for off-time
+  - Blinking per record is enabled:
+    - The led is on for on-time and off for on-pause-time. This repeats
+      for each concurrent recording.
+    - The led is off for off-time
+- If no recording is active, the selected led is turned off
+- If blinkd is used, the timings are controlled by blinkd
+
+OSD:
+====
+
+- The plugin is configurable via the OSD
+- There is an entry Settings->Plugins->statusleds
+
+PROBLEMS:
+=========
+
+- The command line switches -d and -b seems not to be functional.
+- If vdr was killed with signal -9 during active recording and signaling
+  occurs using blinkd, the LED blinking will not be turned off. If blinkd
+  is not used, the LED may remain on.
