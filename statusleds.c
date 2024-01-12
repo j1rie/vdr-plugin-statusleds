@@ -1,5 +1,5 @@
 /*
- * TVTV.c: A plugin for the Video Disk Recorder
+ * statusleds.c: A plugin for the Video Disk Recorder
  *
  * See the README file for copyright information and how to reach the author.
  *
@@ -88,7 +88,7 @@ public:
   virtual bool SetupParse(const char *Name, const char *Value);
 };
 
-// --- cMenuSetupTVTV -------------------------------------------------------
+// --- cMenuSetupStatusLeds -------------------------------------------------------
 
 class cMenuSetupStatusLeds : public cMenuSetupPage {
 private:
