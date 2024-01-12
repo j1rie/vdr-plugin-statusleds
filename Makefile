@@ -42,11 +42,13 @@ PACKAGE = vdr-$(ARCHIVE)
 
 INCLUDES += -I$(VDRDIR)/include -I$(DVBDIR)/include
 
-DEFINES += -DPLUGIN_NAME_I18N='"$(PLUGIN)"'
+//DEFINES += -DPLUGIN_NAME_I18N='"$(PLUGIN)"'
 
 ### The object files (add further files here):
 
-OBJS = $(PLUGIN).o i18n.o
+OBJS = $(PLUGIN).o
+
+### i18n.o
 
 ### Implicit rules:
 

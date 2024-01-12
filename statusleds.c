@@ -5,7 +5,7 @@
  *
  */
 
-#include "i18n.h"
+//#include "i18n.h"
 #include <unistd.h>
 #include <getopt.h>
 #include <vdr/videodir.h>
@@ -390,7 +390,7 @@ void cStatusUpdate::Action(void)
 bool cPluginStatusLeds::Start(void)
 {
     // Start any background activities the plugin shall perform.
-    RegisterI18n(Phrases);
+//    RegisterI18n(Phrases);
     
     oStatusUpdate = new cStatusUpdate;
     oStatusUpdate->Start();
