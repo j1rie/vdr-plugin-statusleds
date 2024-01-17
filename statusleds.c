@@ -367,10 +367,12 @@ void cStatusUpdate::Action(void)
       esyslog("ERROR: Status LED's: Can't open console %s", sConsole);
     else
     {
-      // Let the LED's blink ...
       int OldLed;
       char State;
       bool blinking = false;
+      // turn the LED's on at start
+      ioctl(iConsole, KDGETLED, &State);
+      ioctl(iConsole, KDSETLED, State | (1 << iLed));
       SystemExec(cmd_on, true);
   
       for(bActive = true; bActive;)
@@ -378,6 +380,7 @@ void cStatusUpdate::Action(void)
         OldLed = iLed;
         if (!bUseBlinkd && iRecordings > 0)
         {
+          //  let the LED's blink, if there's a recording
           if(!blinking){
             blinking = true;
           }
@@ -397,6 +400,7 @@ void cStatusUpdate::Action(void)
         }
         else
         {
+          //  turn the LED's on, if there's no recording
           if(blinking){
             ioctl(iConsole, KDGETLED, &State);
             ioctl(iConsole, KDSETLED, State | (1 << iLed));
@@ -408,9 +412,10 @@ void cStatusUpdate::Action(void)
       }
     }
     
-    ioctl(iConsole, KDSETLED, 0); // turn all off
+    // turn the LED's off, when VDR stops
     SystemExec(cmd_off, true);
     dsyslog("Status LED's: Thread ended (pid=%d)", getpid());
+    ioctl(iConsole, KDSETLED, 0);
 }
 
 bool cPluginStatusLeds::Start(void)
