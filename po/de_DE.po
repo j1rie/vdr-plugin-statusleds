@@ -1,0 +1,60 @@
+# VDR plugin language source file.
+# This file is distributed under the same license as the VDR package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vdr-statusleds 0.3_irmp\n"
+"Report-Msgid-Bugs-To: <see README>\n"
+"POT-Creation-Date: 2012-12-18 14:04+0100\n"
+"PO-Revision-Date: 2007-08-11 12:34+0200\n"
+"Last-Translator: German <vdr@linuxtv.org>\n"
+"Language-Team: German <vdr@linuxtv.org>\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=ISO-8859-15\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid   "Setup.StatusLeds$show vdr status over kbd led's"
+msgstr    "VDR-Status über Kbd-LED's anzeigen"
+
+msgid "Setup.StatusLeds$Scroll"
+msgstr    "Rollen"
+
+msgid "Setup.StatusLeds$Num"
+msgstr    "Num"
+
+msgid "Setup.StatusLeds$Caps"
+msgstr    "Feststellen"
+
+msgid "Setup.StatusLeds$LED"
+msgstr    "LED"
+
+msgid "Setup.StatusLeds$    On time (100ms)"
+msgstr    "    Eingeschaltet (100ms)"
+
+msgid "Setup.StatusLeds$    Off time (100ms)"
+msgstr    "    Ausgeschaltet (100ms)"
+
+msgid "Setup.StatusLeds$One blink per recording"
+msgstr    "Pro Aufnahme einmal blinken"
+
+msgid "Setup.StatusLeds$Use blinkd"
+msgstr    "Blinkd nutzen"
+
+msgid "Setup.StatusLeds$    Host"
+msgstr    "    Rechner"
+
+msgid "Setup.StatusLeds$    Port"
+msgstr    "    Port"
+
+msgid "Setup.StatusLeds$Prewarn beep"
+msgstr    "Vorwarnton"
+
+msgid "Setup.StatusLeds$    Prewarn time"
+msgstr    "    Vorwarnzeit"
+
+msgid "Setup.StatusLeds$    Beeps"
+msgstr    "    Anzahl"
+
+msgid "Setup.StatusLeds$    Pause"
+msgstr    "    Pause"

@@ -5,7 +5,7 @@
  *
  */
 
-//#include "i18n.h"
+#include <vdr/i18n.h>
 #include <unistd.h>
 #include <getopt.h>
 #include <vdr/videodir.h>
