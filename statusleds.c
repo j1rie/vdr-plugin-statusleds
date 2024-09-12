@@ -19,8 +19,8 @@
 
 extern char **environ;
 
-static const char *VERSION        = "0.3_irmp";
-static const char *DESCRIPTION    = "show vdr status over kbd led's and irmp led";
+static const char *VERSION        = "0.4";
+static const char *DESCRIPTION    = "show vdr status over kbd led's and stm32IRstatusled";
 
 class cStatusUpdate : public cThread, public cStatus {
 private:
@@ -370,7 +370,7 @@ void cStatusUpdate::Action(void)
       int OldLed;
       char State;
       bool blinking = false;
-      // turn the LED's on at start
+      // turn the LED's on at start of VDR
       ioctl(iConsole, KDGETLED, &State);
       ioctl(iConsole, KDSETLED, State | (1 << iLed));
       SystemExec(cmd_on, true);

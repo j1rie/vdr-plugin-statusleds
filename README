@@ -2,57 +2,22 @@ This is a "plugin" for the Video Disk Recorder (VDR).
 
 Written by:                  Bernd Juraschek <statusleds@bjusystems.de>
 
-Project's homepage:          http://sourceforge.net/projects/vdr-statusleds
+Project's homepage:          https://github.com/j1rie/vdr-plugin-statusleds/
 
-Latest version available at: http://sourceforge.net/projects/vdr-statusleds
+Latest version available at: https://github.com/j1rie/vdr-plugin-statusleds/
 
 See the file COPYING for license information.
 
-Version:                     0.2
+Version:                     0.4
 
 Description:
 
-This plugin signals the recording vdr via keyboard leds.
+This plugin shows the status of VDR via LED:
+when VDR starts, the LED is turned on;
+when VDR stops, the LED is turned off;
+if VDR is recording, the LED blinks (as often as recordings are active).
 
-History:
-========
-
-0.3
-
-- Adding -fPIC to the compiler options
-- Make it compatible with vdr >= 1.3.38
-
-0.2
-
-- Fixed Makefile error
-
-0.1
-- Fixed includes (missing vdr prefix) (thanks to Tobias Grimm)
-- Buffer for blinkd host now 256 bytes (tanks to Tobias Grimm)
-- Shorter version numbering
-
-0.0.7
-- VDR now can presignal recordings using console beeps
-
-0.0.6
-- The OSD settings for using blinkd and per record blinking are now
-  taken correctly from setup.conf (thanks to Heiko Meyer).
-
-0.0.5
-- The plugin now compiles with vdr 1.3.0
-
-0.0.4
-- Now it's possible to use blinkd for remote signaling
-
-0.0.3
-- Inserted some missing command line argument handling
-- New command line argument "-c console"
-         
-0.0.2
-- Fixed crash at stopping vdr
-
-0.0.1
-- First release
+The LED is on a keyboard, or is controlled by a microcontroller, connected via USB (which serves also as IR-receiver for the remote, see https://github.com/j1rie/IRMP_STM32/blob/master/stm32IRstatusled/README).
 
 
 Requirements:
@@ -107,7 +72,7 @@ How active recordings will be signaled:
     - The led is on for on-time and off for on-pause-time. This repeats
       for each concurrent recording.
     - The led is off for off-time
-- If no recording is active, the selected led is turned off
+- If no recording is active, the selected led is turned on
 - If blinkd is used, the timings are controlled by blinkd
 
 OSD:
