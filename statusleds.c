@@ -19,7 +19,7 @@
 
 extern char **environ;
 
-static const char *VERSION        = "0.4";
+static const char *VERSION        = "0.5";
 static const char *DESCRIPTION    = "show vdr status over kbd led's and stm32IRstatusled";
 
 class cStatusUpdate : public cThread, public cStatus {

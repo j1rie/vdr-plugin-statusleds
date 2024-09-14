@@ -1,6 +1,12 @@
 VDR Plugin 'statusleds' Revision History
 ----------------------------------------
 
+2024-09-14: Version 0.5
+
+- remove blinkd, because it doesn't exit any more
+- fix prewarn beep
+- close file descriptor
+
 2024-09-12: Version 0.4
 
 - convert old Makefile and internationalization to the new style
