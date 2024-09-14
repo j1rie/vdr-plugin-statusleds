@@ -41,15 +41,6 @@ msgstr "LED"
 msgid "Setup.StatusLeds$One blink per recording"
 msgstr "Pro Aufnahme einmal blinken"
 
-msgid "Setup.StatusLeds$Use blinkd"
-msgstr "Blinkd nutzen"
-
-msgid "Setup.StatusLeds$    Host"
-msgstr "    Rechner"
-
-msgid "Setup.StatusLeds$    Port"
-msgstr "    Port"
-
 msgid "Setup.StatusLeds$    On time (100ms)"
 msgstr "    Eingeschaltet (100ms)"
 

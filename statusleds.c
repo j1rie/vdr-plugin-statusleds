@@ -57,21 +57,14 @@ const char * sConsole = "/dev/console";
 int iRecordings = 0;
 int iConsole = 0;
 bool bActive = false;
-bool bUseBlinkd = false;
-char sBlinkdHost[256] = "localhost";
-int iBlinkdPort = 20013;
 int iPrewarnBeeps = 3;
 int iPrewarnBeepPause = 500;
 bool bPrewarnBeep = false;
 int iPrewarnBeepTime = 120;
 const char * stm32IRstatusled_path = NULL;
 
-bool bBlinkdUsed = false;
-
 cStatusUpdate * oStatusUpdate = NULL;
 cRecordingPresignal * oRecordingPresignal = NULL;
-
-void Blinkd(bool forceOff);
 
 class cPluginStatusLeds : public cPlugin {
 private:
@@ -98,9 +91,6 @@ private:
   int iNewOffDuration;
   int iNewOnPauseDuration;
   int bNewPerRecordBlinking;
-  int bNewUseBlinkd;
-  int iNewBlinkdPort;
-  char sNewBlinkdHost[30];
   int iNewPrewarnBeeps;
   int iNewPrewarnBeepPause;
   int bNewPrewarnBeep;
@@ -121,9 +111,6 @@ cMenuSetupStatusLeds::cMenuSetupStatusLeds(void)
   iNewOffDuration = iOffDuration;
   iNewOnPauseDuration = iOnPauseDuration;
   bNewPerRecordBlinking = bPerRecordBlinking;
-  bNewUseBlinkd = bUseBlinkd;
-  sprintf(sNewBlinkdHost, "%.*s", (int)sizeof(sNewBlinkdHost)-1, sBlinkdHost);
-  iNewBlinkdPort = iBlinkdPort;
   iNewPrewarnBeeps = iPrewarnBeeps;
   iNewPrewarnBeepPause = iPrewarnBeepPause;
   bNewPrewarnBeep = bPrewarnBeep;
@@ -154,32 +141,21 @@ void cMenuSetupStatusLeds::Set(void)
 
   Add(new cMenuEditStraItem( tr("Setup.StatusLeds$LED"), &iNewLed, 3, Leds));
   Add(new cMenuEditBoolItem( tr("Setup.StatusLeds$One blink per recording"), &bNewPerRecordBlinking));
-  Add(new cMenuEditBoolItem( tr("Setup.StatusLeds$Use blinkd"), &bNewUseBlinkd));
-  
-  if (bNewUseBlinkd)
-  {
-    // Add Blinkd options
-    Add(new cMenuEditStrItem( tr("Setup.StatusLeds$    Host"), sNewBlinkdHost, sizeof(sNewBlinkdHost), tr(FileNameChars)));
-    Add(new cMenuEditIntItem( tr("Setup.StatusLeds$    Port"), &iNewBlinkdPort, 0, 32768));
-  }
-  else
-  {
-    // Add ioctl() options
-    Add(new cMenuEditIntItem( tr("Setup.StatusLeds$    On time (100ms)"), &iNewOnDuration, 1, 99));
-    Add(new cMenuEditIntItem( tr("Setup.StatusLeds$    On pause time (100ms)"), &iNewOnPauseDuration, 1, 99));
-    Add(new cMenuEditIntItem( tr("Setup.StatusLeds$    Off time (100ms)"), &iNewOffDuration, 1, 99));
-  }
+
+  // Add ioctl() options
+  Add(new cMenuEditIntItem( tr("Setup.StatusLeds$    On time (100ms)"), &iNewOnDuration, 1, 99));
+  Add(new cMenuEditIntItem( tr("Setup.StatusLeds$    On pause time (100ms)"), &iNewOnPauseDuration, 1, 99));
+  Add(new cMenuEditIntItem( tr("Setup.StatusLeds$    Off time (100ms)"), &iNewOffDuration, 1, 99));
 
   SetCurrent(Get(current));
 }
 
 eOSState cMenuSetupStatusLeds::ProcessKey(eKeys Key)
 {
-  bool bOldUseBlinkd = bNewUseBlinkd;
   bool bOldPrewarnBeep = bNewPrewarnBeep;
 
   eOSState state = cMenuSetupPage::ProcessKey(Key);
-  if (bOldUseBlinkd != bNewUseBlinkd || bOldPrewarnBeep != bNewPrewarnBeep)
+  if (bOldPrewarnBeep != bNewPrewarnBeep)
   {
     Set();
     Display();
@@ -195,9 +171,6 @@ void cMenuSetupStatusLeds::Save(void)
   iOffDuration = iNewOffDuration;
   iOnPauseDuration = iNewOnPauseDuration;
   bPerRecordBlinking = bNewPerRecordBlinking;
-  bUseBlinkd = bNewUseBlinkd;
-  strcpy(sBlinkdHost, sNewBlinkdHost);
-  iBlinkdPort = iNewBlinkdPort;
   bPrewarnBeep = bNewPrewarnBeep;
   iPrewarnBeeps = iNewPrewarnBeeps;
   iPrewarnBeepTime = iNewPrewarnBeepTime;
@@ -206,22 +179,13 @@ void cMenuSetupStatusLeds::Save(void)
 
 void cMenuSetupStatusLeds::Store(void)
 {
-  if (bBlinkdUsed)
-    Blinkd(true);
-
   Save();
 
-  if (bUseBlinkd)
-    Blinkd(false);
-
-  SetupStore("UseBlinkd", bUseBlinkd);
   SetupStore("Led", iLed);
   SetupStore("OnDuration", iOnDuration);
   SetupStore("OffDuration", iOffDuration);
   SetupStore("OnPauseDuration", iOnPauseDuration);
   SetupStore("PerRecordBlinking", bPerRecordBlinking);
-  SetupStore("BlinkdHost", sBlinkdHost);
-  SetupStore("BlinkdPort", iBlinkdPort);
   SetupStore("PrewarnBeep", bPrewarnBeep);
   SetupStore("PrewarnBeeps", iPrewarnBeeps);
   SetupStore("PrewarnBeepPause", iPrewarnBeepPause);
@@ -260,7 +224,6 @@ const char *cPluginStatusLeds::CommandLineHelp(void)
 
 "  -l LED, --led=LED                          LED (0: scroll, 1: num, 2: caps)\n"
 "  -p, --perrecordblinking                    LED blinks one times per recording\n"
-"  -b [host[:port]], --blinkd[=host[:port]]   Use blinkd for controlling LEDs\n"
 "  -d [on[,off[,pause]]],                     LED blinking timing\n"
 "     --duration[=On-Time[,Off-Time[,On-Pause-Time]]]\n"
 "  -c console, --console=console              Console LED attached to\n"
@@ -278,7 +241,6 @@ bool cPluginStatusLeds::ProcessArgs(int argc, char *argv[])
        { "duration",		optional_argument,	NULL, 'd' },
        { "perrecordblinking",	no_argument,		NULL, 'p' },
        { "console",		required_argument,	NULL, 'c' },
-       { "blinkd",		optional_argument,	NULL, 'b' },
        { "prewarn",		optional_argument,	NULL, 'w' },
        { "stm32IRstatusled_path", required_argument,	NULL, 'i' },
        { NULL,			no_argument,		NULL, 0 }
@@ -288,50 +250,33 @@ bool cPluginStatusLeds::ProcessArgs(int argc, char *argv[])
   while ((c = getopt_long(argc, argv, "l:d:pc:b:w:i:", long_options, NULL)) != -1) {
         switch (c) {
           case 'l':
-	    iLed = atoi(optarg);
-	    if (iLed < 0 || iLed > 2)
+            iLed = atoi(optarg);
+            if (iLed < 0 || iLed > 2)
               iLed = 0;
             break;
           case 'd':
-	    iOnDuration = 1;
-	    iOffDuration = 10;
-	    iOnPauseDuration = 5;
-	    if (optarg && *optarg)
-	      sscanf(optarg, "%d,%d,%d", &iOnDuration, &iOffDuration, &iOnPauseDuration);
+            iOnDuration = 1;
+            iOffDuration = 10;
+            iOnPauseDuration = 5;
+            if (optarg && *optarg)
+              sscanf(optarg, "%d,%d,%d", &iOnDuration, &iOffDuration, &iOnPauseDuration);
             break;
           case 'p': 
-	    bPerRecordBlinking = true;
-	    break;
-	  case 'c':
-	    sConsole = optarg;
-	    break;
-	  case 'b':
-	    if (optarg && *optarg)
-	    {
-	      char * Port = strchr(optarg, ':');
-	      if (Port)
-	      {
-	        iBlinkdPort = atoi(Port+1);
-	        unsigned int iHostLength = Port - optarg;
-	        if (iHostLength >= sizeof(sBlinkdHost))
-	          iHostLength = sizeof(sBlinkdHost)-1;
-	        sprintf(sBlinkdHost, "%.*s", iHostLength, optarg);
-	      }
-	      else
-		      sprintf(sBlinkdHost, "%.*s", (int)sizeof(sBlinkdHost)-1, optarg);
-	    }
-	    bUseBlinkd = true;
-	    break;
-	  case 'w':
-	    bPrewarnBeep = true;
-	    if (optarg && *optarg)
+            bPerRecordBlinking = true;
+            break;
+          case 'c':
+            sConsole = optarg;
+            break;
+          case 'w':
+            bPrewarnBeep = true;
+            if (optarg && *optarg)
               sscanf(optarg, "%d,%d,%d", &iPrewarnBeepTime, &iPrewarnBeeps, &iPrewarnBeepPause);
-	    break;
-	  case 'i':
-	    stm32IRstatusled_path = optarg;
-	    break;
+            break;
+          case 'i':
+            stm32IRstatusled_path = optarg;
+            break;
           default:
-	    return false;
+            return false;
           }
         }
   return true;
@@ -357,7 +302,7 @@ cStatusUpdate::~cStatusUpdate()
 void cStatusUpdate::Action(void)
 {
     dsyslog("Status LED's: Thread started (pid=%d)", getpid());
-    
+
       cString cmd_on = cString::sprintf("%s -s 1", stm32IRstatusled_path);
       cString cmd_off = cString::sprintf("%s -s 0", stm32IRstatusled_path);
 
@@ -374,28 +319,28 @@ void cStatusUpdate::Action(void)
       ioctl(iConsole, KDGETLED, &State);
       ioctl(iConsole, KDSETLED, State | (1 << iLed));
       SystemExec(cmd_on, true);
-  
+
       for(bActive = true; bActive;)
       {
         OldLed = iLed;
-        if (!bUseBlinkd && iRecordings > 0)
+        if (iRecordings > 0)
         {
           //  let the LED's blink, if there's a recording
           if(!blinking){
             blinking = true;
           }
-  	  for(int i = 0; i < (bPerRecordBlinking ? iRecordings : 1) && bActive; i++)
-  	  {
-  	    ioctl(iConsole, KDGETLED, &State);
+          for(int i = 0; i < (bPerRecordBlinking ? iRecordings : 1) && bActive; i++)
+          {
+            ioctl(iConsole, KDGETLED, &State);
             ioctl(iConsole, KDSETLED, State | (1 << iLed));
             SystemExec(cmd_on, true);
             usleep(iOnDuration * 100000);
-        
+
             ioctl(iConsole, KDGETLED, &State);
             ioctl(iConsole, KDSETLED, State & ~(1 << OldLed));
             SystemExec(cmd_off, true);
             usleep(iOnPauseDuration * 100000);
-  	  }
+          }
           usleep(iOffDuration * 100000);
         }
         else
@@ -411,18 +356,17 @@ void cStatusUpdate::Action(void)
         }
       }
     }
-    
+
     // turn the LED's off, when VDR stops
     SystemExec(cmd_off, true);
     dsyslog("Status LED's: Thread ended (pid=%d)", getpid());
     ioctl(iConsole, KDSETLED, 0);
+    close(iConsole);
 }
 
 bool cPluginStatusLeds::Start(void)
 {
     // Start any background activities the plugin shall perform.
-//    RegisterI18n(Phrases);
-    
     oStatusUpdate = new cStatusUpdate;
     oStatusUpdate->Start();
 
@@ -474,18 +418,6 @@ bool cPluginStatusLeds::SetupParse(const char *Name, const char *Value)
   {
     bPerRecordBlinking = atoi(Value);
   }
-  else if (!strcasecmp(Name, "UseBlinkd"))
-  {
-    bUseBlinkd = atoi(Value);
-  }
-  else if (!strcasecmp(Name, "BlinkdHost"))
-  {
-    sprintf(sBlinkdHost, "%.*s", (int)sizeof(sBlinkdHost)-1, Value);
-  }
-  else if (!strcasecmp(Name, "BlinkdPort"))
-  {
-    iBlinkdPort = atoi(Value);
-  }
   else if (!strcasecmp(Name, "PrewarnBeep"))
   {
     bPrewarnBeep = atoi(Value);
@@ -510,9 +442,6 @@ bool cPluginStatusLeds::SetupParse(const char *Name, const char *Value)
 
 void cStatusUpdate::Stop()
 {
-  if (bBlinkdUsed)
-    Blinkd(true);
-
   oStatusUpdate->Cancel((iOnDuration + iOnPauseDuration + iOffDuration) * 10);
 }
 
@@ -528,32 +457,12 @@ void cStatusUpdate::Recording(const cDevice *Device, const char *Name)
     iRecordings++;
   else
     iRecordings--;
-
-  if (bUseBlinkd)
-    Blinkd(false);
-}
-
-void Blinkd(bool forceOff)
-{
-  static const char * Leds[] = { "-s", "-n", "-c" };
-  char Cmd[100];
-
-  sprintf(Cmd, "blink %s -r %d -m %s", Leds[iLed],
-				forceOff ? 0 : iRecordings, sBlinkdHost); 
-  if (iBlinkdPort > 0)
-    sprintf(Cmd, "%s -t %d", Cmd, iBlinkdPort);
-  sprintf(Cmd, "%s &", Cmd);
-
-  system(Cmd);
-
-  bBlinkdUsed = !forceOff && iRecordings > 0;
-
 }
 
 void cRecordingPresignal::Action(void)
 {
   dsyslog("Status LED's: Presignal-Thread started (pid=%d)", getpid());
-  
+
   time_t LastTime = 0;
 
   // Observe the timer list
@@ -576,15 +485,15 @@ void cRecordingPresignal::Action(void)
         // Start signalisation?
         if (StartTime - iPrewarnBeepTime < Now)
         {
-	  if (bPrewarnBeep)
-	  {
+          if (bPrewarnBeep)
+          {
             for(int i = 0; i < iPrewarnBeeps; i++)
             {
-	      write(iConsole, "\007", 1);
-	      usleep(iPrewarnBeepPause * 1000);
+              system("/usr/local/bin/beep");
+              usleep(iPrewarnBeepPause * 1000);
             }
-	  }
-	  
+          }
+
           // remember last signaled time
           LastTime = StartTime;
         }
@@ -594,7 +503,7 @@ void cRecordingPresignal::Action(void)
 
     sleep(1);
   }
-  
+
   dsyslog("Status LED's: Presignal-Thread ended (pid=%d)", getpid());
 }
 
