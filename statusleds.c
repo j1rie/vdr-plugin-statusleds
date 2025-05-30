@@ -33,7 +33,6 @@ public:
 #else
     virtual void Recording(const cDevice *Device, const char *Name);
 #endif
-    void Stop();
 protected:
     virtual void Action(void);
 };
@@ -57,11 +56,15 @@ const char * sConsole = "/dev/console";
 int iRecordings = 0;
 int iConsole = 0;
 bool bActive = false;
-int iPrewarnBeeps = 3;
+int iPrewarnBeeps = 0;
 int iPrewarnBeepPause = 500;
 bool bPrewarnBeep = false;
 int iPrewarnBeepTime = 120;
 const char * stm32IRstatusled_path = NULL;
+int OldLed;
+char State;
+cString cmd_on;
+cString cmd_off;
 
 cStatusUpdate * oStatusUpdate = NULL;
 cRecordingPresignal * oRecordingPresignal = NULL;
@@ -77,6 +80,7 @@ public:
   virtual bool ProcessArgs(int argc, char *argv[]);
   virtual bool Start(void);
   virtual void Housekeeping(void);
+  virtual void Stop(void);
   virtual const char *MainMenuEntry(void) { return NULL; }
   virtual cMenuSetupPage *SetupMenu(void);
   virtual bool SetupParse(const char *Name, const char *Value);
@@ -166,6 +170,14 @@ eOSState cMenuSetupStatusLeds::ProcessKey(eKeys Key)
 
 void cMenuSetupStatusLeds::Save(void)
 {
+  if (iNewLed != iLed) {
+    // disable old, enable new
+    ioctl(iConsole, KDGETLED, &State);
+    ioctl(iConsole, KDSETLED, State & ~(1 << iLed));
+    usleep(100000);
+    ioctl(iConsole, KDGETLED, &State);
+    ioctl(iConsole, KDSETLED, State | (1 << iNewLed));
+  }
   iLed = iNewLed;
   iOnDuration = iNewOnDuration;
   iOffDuration = iNewOffDuration;
@@ -294,7 +306,6 @@ cStatusUpdate::~cStatusUpdate()
     bActive = false;
 
     // Stop threads
-    oStatusUpdate->Stop();
     oRecordingPresignal->Stop();
   }
 }
@@ -303,8 +314,6 @@ void cStatusUpdate::Action(void)
 {
     dsyslog("Status LED's: Thread started (pid=%d)", getpid());
 
-      cString cmd_on = cString::sprintf("%s -s 1", stm32IRstatusled_path);
-      cString cmd_off = cString::sprintf("%s -s 0", stm32IRstatusled_path);
 
     // Open console
     iConsole = open(sConsole, 2);
@@ -312,8 +321,6 @@ void cStatusUpdate::Action(void)
       esyslog("ERROR: Status LED's: Can't open console %s", sConsole);
     else
     {
-      int OldLed;
-      char State;
       bool blinking = false;
       // turn the LED's on at start of VDR
       ioctl(iConsole, KDGETLED, &State);
@@ -356,12 +363,6 @@ void cStatusUpdate::Action(void)
         }
       }
     }
-
-    // turn the LED's off, when VDR stops
-    SystemExec(cmd_off, true);
-    dsyslog("Status LED's: Thread ended (pid=%d)", getpid());
-    ioctl(iConsole, KDSETLED, 0);
-    close(iConsole);
 }
 
 bool cPluginStatusLeds::Start(void)
@@ -373,11 +374,24 @@ bool cPluginStatusLeds::Start(void)
     oRecordingPresignal = new cRecordingPresignal;
     oRecordingPresignal->Start();
 
+    cmd_on = cString::sprintf("%s -s 1", stm32IRstatusled_path);
+    cmd_off = cString::sprintf("%s -s 0", stm32IRstatusled_path);
+
     return true;
 }
 
 void cPluginStatusLeds::Housekeeping(void)
 {
+}
+
+void cPluginStatusLeds::Stop(void)
+{
+  // turn the LED's off, when VDR stops
+  ioctl(iConsole, KDGETLED, &State);
+  ioctl(iConsole, KDSETLED, State & ~(1 << OldLed));
+  SystemExec(cmd_off, true);
+  close(iConsole);
+  dsyslog("Status LED's: Thread ended (pid=%d)", getpid());
 }
 
 cMenuSetupPage *cPluginStatusLeds::SetupMenu(void)
@@ -436,13 +450,8 @@ bool cPluginStatusLeds::SetupParse(const char *Name, const char *Value)
   }
   else
     return false;
-  
-  return true;
-}
 
-void cStatusUpdate::Stop()
-{
-  oStatusUpdate->Cancel((iOnDuration + iOnPauseDuration + iOffDuration) * 10);
+  return true;
 }
 
 #if VDRVERSNUM >= 10338

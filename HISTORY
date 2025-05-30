@@ -1,6 +1,12 @@
 VDR Plugin 'statusleds' Revision History
 ----------------------------------------
 
+2025-05-30: Version 0.6
+
+- stop the plugin properly
+- change led at Save()
+- preset PrewarnBeeps to 0
+
 2024-09-14: Version 0.5
 
 - remove blinkd, because it doesn't exit any more
