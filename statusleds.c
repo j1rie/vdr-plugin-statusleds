@@ -16,10 +16,11 @@
 #include <ctype.h>
 #include <sys/kd.h>
 #include <sys/ioctl.h>
+#include <fcntl.h>
 
 extern char **environ;
 
-static const char *VERSION        = "0.5";
+static const char *VERSION        = "0.7";
 static const char *DESCRIPTION    = "show vdr status over kbd led's and stm32IRstatusled";
 
 class cStatusUpdate : public cThread, public cStatus {
@@ -33,6 +34,7 @@ public:
 #else
     virtual void Recording(const cDevice *Device, const char *Name);
 #endif
+    void Stop();
 protected:
     virtual void Action(void);
 };
@@ -306,6 +308,7 @@ cStatusUpdate::~cStatusUpdate()
     bActive = false;
 
     // Stop threads
+    oStatusUpdate->Stop();
     oRecordingPresignal->Stop();
   }
 }
@@ -316,7 +319,7 @@ void cStatusUpdate::Action(void)
 
 
     // Open console
-    iConsole = open(sConsole, 2);
+    iConsole = open(sConsole, O_RDWR);
     if (iConsole < 0)
       esyslog("ERROR: Status LED's: Can't open console %s", sConsole);
     else
@@ -326,6 +329,7 @@ void cStatusUpdate::Action(void)
       ioctl(iConsole, KDGETLED, &State);
       ioctl(iConsole, KDSETLED, State | (1 << iLed));
       SystemExec(cmd_on, true);
+      dsyslog("Status LED's: turned LED on at start");
 
       for(bActive = true; bActive;)
       {
@@ -363,6 +367,7 @@ void cStatusUpdate::Action(void)
         }
       }
     }
+    dsyslog("Status LED's: Thread ended (pid=%d)", getpid());
 }
 
 bool cPluginStatusLeds::Start(void)
@@ -391,7 +396,7 @@ void cPluginStatusLeds::Stop(void)
   ioctl(iConsole, KDSETLED, State & ~(1 << OldLed));
   SystemExec(cmd_off, true);
   close(iConsole);
-  dsyslog("Status LED's: Thread ended (pid=%d)", getpid());
+  dsyslog("Status LED's: stopped (pid=%d)", getpid());
 }
 
 cMenuSetupPage *cPluginStatusLeds::SetupMenu(void)
@@ -452,6 +457,11 @@ bool cPluginStatusLeds::SetupParse(const char *Name, const char *Value)
     return false;
 
   return true;
+}
+
+void cStatusUpdate::Stop()
+{
+  oStatusUpdate->Cancel((iOnDuration + iOnPauseDuration + iOffDuration) * 10);
 }
 
 #if VDRVERSNUM >= 10338

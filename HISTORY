@@ -1,6 +1,12 @@
 VDR Plugin 'statusleds' Revision History
 ----------------------------------------
 
+2025-09-06: Version 0.7
+
+- partly revert 'stop the plugin properly'
+- more dsyslog
+- include fcntl
+
 2025-05-30: Version 0.6
 
 - stop the plugin properly
