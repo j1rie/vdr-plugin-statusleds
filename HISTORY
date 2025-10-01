@@ -1,6 +1,13 @@
 VDR Plugin 'statusleds' Revision History
 ----------------------------------------
 
+2025-10-01: Version 0.8
+
+- instead of sending signals to console, use commands
+- no longer root needed, no patch needed
+- simplify code, no command send after plugin stop
+- remove console stuff, improve translation
+
 2025-09-06: Version 0.7
 
 - partly revert 'stop the plugin properly'

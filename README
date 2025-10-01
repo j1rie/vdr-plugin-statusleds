@@ -10,19 +10,15 @@ See the file COPYING for license information.
 
 Description:
 
-This plugin shows the status of VDR via LED:
-when VDR starts, the LED is turned on;
-when VDR stops, the LED is turned off;
-if VDR is recording, the LED blinks (as often as recordings are active).
-
-The LED is on a keyboard, or is controlled by a microcontroller, connected via USB (which serves also as IR-receiver for the remote, see https://github.com/j1rie/IRMP_STM32/blob/master/stm32IRstatusled/README).
-
+This plugin shows the status of VDR via commands:
+when VDR starts, cmd_on is send;
+when VDR stops, cmd_off is send;
+if VDR is recording, cmd_on/off is send (as often as recordings are active).
 
 Requirements:
 =============
 
 - vdr 1.2.x (1.1.x should be work also)
-- vdr running as superuser (for console access)
 - for prewarn beeps beep needs to be installed and the kernel might need CONFIG_INPUT_PCSPKR
 
 
@@ -42,31 +38,28 @@ Running the plugin:
 - Append -Pstatusleds to the vdr commandline 
 - Append plugin parameters, if you don't want to use the OSD
 
-  -l led, --led=led               Sets the status led to use
-                                  Possible values:
-                                     0: Scroll
-				     1: Num
-				     2: Caps
-				  Default: Num
+  -n cmd_on, --cmd_on=cmd_on
+
+  -f cmd_off, --cmd_off=cmd_off
 
   -d timing, --duration=timing    Sets the timing values in 100ms
                                   Format: on-time,off-time,on-pause-time
 				  Default: 1,10,5
 
-  -p, --perrecordblinking         Enables record count siganlisation
+  -p, --perrecordblinking         Enables record count signalisation
 
 
 How active recordings will be signaled:
 =======================================
 
-- If recordings are active, the selected led is blinking:
+- If recordings are active, the commands are send:
   - Blinking per record is disabled:
-    - The led is on for on-time
-    - The led is off for off-time
+    - The cmd_on is send for on-time
+    - The cmd_off is send for off-time
   - Blinking per record is enabled:
-    - The led is on for on-time and off for on-pause-time. This repeats
+    - The cmd_on is send for on-time and cmd_off is send for on-pause-time. This repeats
       for each concurrent recording.
-    - The led is off for off-time
+    - The cmd_off is send for off-time
 - If no recording is active, the selected led is turned on
 
 OSD:
@@ -78,5 +71,5 @@ OSD:
 PROBLEMS:
 =========
 
-- The command line switches -d and -b seems not to be functional.
+- The command line switch -d seems not to be functional.
 - If vdr was killed with signal -9 during active recording the LED may remain on.
