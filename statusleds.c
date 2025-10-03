@@ -431,6 +431,7 @@ void cRecordingPresignal::Action(void)
               SystemExec(cmd_pwb_off, true);
               usleep(iPrewarnBeepPause * 100000);
             }
+            if (!stop) SystemExec(cmd_pwb_on, true);
           }
 
           // remember last signaled time
