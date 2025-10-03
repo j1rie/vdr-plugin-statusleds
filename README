@@ -14,13 +14,12 @@ This plugin shows the status of VDR via commands:
 when VDR starts, cmd_on is send;
 when VDR stops, cmd_off is send;
 if VDR is recording, cmd_on/off is send (as often as recordings are active).
+Before a recording starts cmd_pwb_on/off are send.
 
 Requirements:
 =============
 
 - vdr 1.2.x (1.1.x should be work also)
-- for prewarn beeps beep needs to be installed and the kernel might need CONFIG_INPUT_PCSPKR
-
 
 Installation and Compilation:
 =============================
@@ -47,6 +46,10 @@ Running the plugin:
 				  Default: 1,10,5
 
   -p, --perrecordblinking         Enables record count signalisation
+
+  -w cmd_pwb_on, --cmd_pwb_on=cmd_pwb_on   warn before recording
+
+  -x cmd_pwb_off, --cmd_pwb_off=cmd_pwb_off   warn before recording
 
 
 How active recordings will be signaled:

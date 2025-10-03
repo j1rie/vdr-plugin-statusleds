@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr-statusleds 0.4\n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2025-10-01 17:06+0200\n"
+"POT-Creation-Date: 2025-10-03 16:39+0200\n"
 "PO-Revision-Date: 2007-08-11 12:34+0200\n"
 "Last-Translator: German <vdr@linuxtv.org>\n"
 "Language-Team: German <vdr@linuxtv.org>\n"
@@ -14,29 +14,32 @@ msgstr ""
 "Content-Type: text/plain; charset=ISO-8859-15\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+msgid "show vdr status via commands"
+msgstr "VDR-Status  ber Kommandos anzeigen"
+
 msgid "Setup.StatusLeds$Prewarn beep"
-msgstr "Vorwarnton"
+msgstr "Vorwarn Signal"
 
-msgid "Setup.StatusLeds$Prewarn time"
-msgstr "Vorwarnzeit"
+msgid "Setup.StatusLeds$Prewarn time (s)"
+msgstr "Vorwarnzeit (s)"
 
-msgid "Setup.StatusLeds$Beeps"
-msgstr "Anzahl"
+msgid "Setup.StatusLeds$Prewarn Beeps"
+msgstr "Vorwarn Anzahl"
 
-msgid "Setup.StatusLeds$Pause"
-msgstr "Pause"
+msgid "Setup.StatusLeds$Prewarn Pause (100ms)"
+msgstr "Vorwarn Pause (100ms)"
 
-msgid "Setup.StatusLeds$One blink per recording"
-msgstr "Pro Aufnahme einmal blinken"
+msgid "Setup.StatusLeds$Prewarn On time (100ms)"
+msgstr "Vorwarn Einschaltdauer (100ms)"
 
 msgid "Setup.StatusLeds$On time (100ms)"
 msgstr "Einschaltdauer (100ms)"
+
+msgid "Setup.StatusLeds$One blink per recording"
+msgstr "Pro Aufnahme einmal blinken"
 
 msgid "Setup.StatusLeds$On pause time (100ms)"
 msgstr "Pausendauer (100ms)"
 
 msgid "Setup.StatusLeds$Off time (100ms)"
 msgstr "Ausschaltdauer (100ms)"
-
-msgid "StatusLeds$show vdr status via commands"
-msgstr "VDR-Status  ber Kommandos anzeigen"

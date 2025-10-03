@@ -1,6 +1,10 @@
 VDR Plugin 'statusleds' Revision History
 ----------------------------------------
 
+2025-10-03: Version 0.9
+
+- use commands also for prewarning
+
 2025-10-01: Version 0.8
 
 - instead of sending signals to console, use commands

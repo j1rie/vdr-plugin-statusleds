@@ -20,9 +20,8 @@
 
 extern char **environ;
 
-static const char *VERSION        = "0.8";
-static const char *DESCRIPTION    = "show vdr status via commands";
-volatile bool stop = false;
+static const char *VERSION        = "0.9";
+static const char *DESCRIPTION    = tr("show vdr status via commands");
 
 class cStatusUpdate : public cThread, public cStatus {
 public:
@@ -48,15 +47,19 @@ int iOffDuration = 10;
 int iOnPauseDuration = 5; 
 bool bPerRecordBlinking = false;
 int iRecordings = 0;
-int iPrewarnBeeps = 0;
-int iPrewarnBeepPause = 500;
+volatile bool stop = false;
+int iPrewarnBeeps = 3;
+int iPrewarnBeepPause = 5;
 bool bPrewarnBeep = false;
 int iPrewarnBeepTime = 120;
+int iPrewarnBeepOnDuration = 1;
 cString cmd_on;
 cString cmd_off;
+cString cmd_pwb_on;
+cString cmd_pwb_off;
 
-cStatusUpdate * oStatusUpdate = NULL;
-cRecordingPresignal * oRecordingPresignal = NULL;
+//cStatusUpdate * oStatusUpdate = NULL;
+//cRecordingPresignal * oRecordingPresignal = NULL;
 
 class cPluginStatusLeds : public cPlugin {
 private:
@@ -88,6 +91,7 @@ private:
   int iNewPrewarnBeepPause;
   int bNewPrewarnBeep;
   int iNewPrewarnBeepTime;
+  int iNewPrewarnBeepOnDuration;
 protected:
   virtual void Store(void);
   void Set(void);
@@ -107,6 +111,7 @@ cMenuSetupStatusLeds::cMenuSetupStatusLeds(void)
   iNewPrewarnBeepPause = iPrewarnBeepPause;
   bNewPrewarnBeep = bPrewarnBeep;
   iNewPrewarnBeepTime = iPrewarnBeepTime;
+  iNewPrewarnBeepOnDuration = iPrewarnBeepOnDuration;
 
   Set();
 }
@@ -119,9 +124,10 @@ void cMenuSetupStatusLeds::Set(void)
   Add(new cMenuEditBoolItem( tr("Setup.StatusLeds$Prewarn beep"), &bNewPrewarnBeep));
   if (bNewPrewarnBeep)
   {
-    Add(new cMenuEditIntItem(  tr("Setup.StatusLeds$Prewarn time"), &iNewPrewarnBeepTime, 1, 32768));
-    Add(new cMenuEditIntItem(  tr("Setup.StatusLeds$Beeps"), &iNewPrewarnBeeps, 1, 100));
-    Add(new cMenuEditIntItem(  tr("Setup.StatusLeds$Pause"), &iNewPrewarnBeepPause));
+    Add(new cMenuEditIntItem(  tr("Setup.StatusLeds$Prewarn time (s)"), &iNewPrewarnBeepTime, 1, 32768));
+    Add(new cMenuEditIntItem(  tr("Setup.StatusLeds$Prewarn Beeps"), &iNewPrewarnBeeps, 1, 100));
+    Add(new cMenuEditIntItem(  tr("Setup.StatusLeds$Prewarn Pause (100ms)"), &iNewPrewarnBeepPause));
+    Add(new cMenuEditIntItem(  tr("Setup.StatusLeds$Prewarn On time (100ms)"), &iNewPrewarnBeepOnDuration));
   }
 
   Add(new cMenuEditBoolItem( tr("Setup.StatusLeds$One blink per recording"), &bNewPerRecordBlinking));
@@ -158,6 +164,7 @@ void cMenuSetupStatusLeds::Save(void)
   iPrewarnBeeps = iNewPrewarnBeeps;
   iPrewarnBeepTime = iNewPrewarnBeepTime;
   iPrewarnBeepPause = iNewPrewarnBeepPause;
+  iPrewarnBeepOnDuration = iNewPrewarnBeepOnDuration;
 }
 
 void cMenuSetupStatusLeds::Store(void)
@@ -172,6 +179,7 @@ void cMenuSetupStatusLeds::Store(void)
   SetupStore("PrewarnBeeps", iPrewarnBeeps);
   SetupStore("PrewarnBeepPause", iPrewarnBeepPause);
   SetupStore("PrewarnBeepTime", iPrewarnBeepTime);
+  SetupStore("PrewarnBeepOnDuration", iPrewarnBeepOnDuration);
 }
 
 // --- cPluginStatusLeds ----------------------------------------------------------
@@ -182,6 +190,7 @@ cPluginStatusLeds::cPluginStatusLeds(void)
   // DON'T DO ANYTHING ELSE THAT MAY HAVE SIDE EFFECTS, REQUIRE GLOBAL
   // VDR OBJECTS TO EXIST OR PRODUCE ANY OUTPUT!
   oStatusUpdate = NULL;
+  oRecordingPresignal = NULL;
 }
 
 cPluginStatusLeds::~cPluginStatusLeds()
@@ -199,8 +208,10 @@ const char *cPluginStatusLeds::CommandLineHelp(void)
 "  -p, --perrecordblinking                    LED blinks one times per recording\n"
 "  -d [on[,off[,pause]]],                     LED blinking timing\n"
 "     --duration[=On-Time[,Off-Time[,On-Pause-Time]]]\n"
-"  -w [time,beeps,pause],                     Presignal records\n"
-"     --prewarn[=Time,Beeps,Pause]\n" 
+"  -w cmd_pwb_on[time,beeps,pause,on],                     warn before recording\n"
+"     --cmd_pwb_on=cmd_pwb_on[Time,Beeps,Pause,on]\n"
+"  -x cmd_pwb_off,                     warn before recording\n"
+"     --cmd_pwb_off=cmd_pwb_off[Time,Beeps,Pause]\n"
 "  -n cmd_on, --cmd_on=cmd_on  cmd_on\n"
 "  -f cmd_off, --cmd_off=cmd_off  cmd_off\n"
 ;
@@ -212,19 +223,20 @@ bool cPluginStatusLeds::ProcessArgs(int argc, char *argv[])
   static struct option long_options[] = {
        { "duration",		optional_argument,	NULL, 'd' },
        { "perrecordblinking",	no_argument,		NULL, 'p' },
-       { "prewarn",		optional_argument,	NULL, 'w' },
+       { "cmd_pwb_on",		required_argument,	NULL, 'w' },
+       { "cmd_pwb_off",		required_argument,	NULL, 'x' },
        { "cmd_on", required_argument,	NULL, 'n' },
        { "cmd_off", required_argument,	NULL, 'f' },
        { NULL,			no_argument,		NULL, 0 }
      };
 
   int c;
-  while ((c = getopt_long(argc, argv, "d:pw:n:f:", long_options, NULL)) != -1) {
+  while ((c = getopt_long(argc, argv, "dpw:x:n:f:", long_options, NULL)) != -1) {
         switch (c) {
           case 'd':
-            iOnDuration = 1;
-            iOffDuration = 10;
-            iOnPauseDuration = 5;
+            //iOnDuration = 1;
+            //iOffDuration = 10;
+            //iOnPauseDuration = 5;
             if (optarg && *optarg)
               sscanf(optarg, "%d,%d,%d", &iOnDuration, &iOffDuration, &iOnPauseDuration);
             break;
@@ -232,12 +244,17 @@ bool cPluginStatusLeds::ProcessArgs(int argc, char *argv[])
             bPerRecordBlinking = true;
             break;
           case 'w':
+            cmd_pwb_on = optarg;
             bPrewarnBeep = true;
             if (optarg && *optarg)
-              sscanf(optarg, "%d,%d,%d", &iPrewarnBeepTime, &iPrewarnBeeps, &iPrewarnBeepPause);
+              sscanf(optarg, "%d,%d,%d,%d", &iPrewarnBeepTime, &iPrewarnBeeps, &iPrewarnBeepPause,&iPrewarnBeepOnDuration);
+            break;
+          case 'x':
+            cmd_pwb_off = optarg;
             break;
           case 'n':
             cmd_on = optarg;
+            break;
           case 'f':
             cmd_off = optarg;
             break;
@@ -260,7 +277,6 @@ void cStatusUpdate::Action(void)
 {
     dsyslog("Status LED's: Thread started (pid=%d)", getpid());
 
-
       bool blinking = false;
       // turn the LED's on at start of VDR
       SystemExec(cmd_on, true);
@@ -282,7 +298,7 @@ void cStatusUpdate::Action(void)
           usleep(iOffDuration * 100000);
         } else {
           //  turn the LED's on, if there's no recording
-          if(blinking){
+          if(blinking) {
             if (!stop) SystemExec(cmd_on, true);
             blinking = false;
           }
@@ -307,6 +323,7 @@ void cPluginStatusLeds::Stop(void)
 {
   // turn the LED's off, when VDR stops
   SystemExec(cmd_off, true);
+  SystemExec(cmd_pwb_off, true);
   stop = true;
   dsyslog("Status LED's: stopped (pid=%d)", getpid());
 }
@@ -359,6 +376,12 @@ bool cPluginStatusLeds::SetupParse(const char *Name, const char *Value)
   {
     iPrewarnBeepPause = atoi(Value);
   }
+  else if (!strcasecmp(Name, "PrewarnBeepOnDuration"))
+  {
+    iPrewarnBeepOnDuration = atoi(Value);
+    if (iPrewarnBeepOnDuration < 0 || iPrewarnBeepOnDuration > 99)
+      iPrewarnBeepOnDuration = 1;
+  }
   else
     return false;
 
@@ -392,24 +415,21 @@ void cRecordingPresignal::Action(void)
     LOCK_TIMERS_READ;
     const cTimer * NextTimer = Timers->GetNextActiveTimer();
 
-    if (NextTimer)
-    {
+      if (NextTimer) {
       time_t StartTime = NextTimer->StartTime();
 
-      if (LastTime != StartTime)
-      {
+        if (LastTime != StartTime) {
         // get warn time
         time_t Now = time(NULL);
 
         // Start signalisation?
-        if (StartTime - iPrewarnBeepTime < Now)
-        {
-          if (bPrewarnBeep)
-          {
-            for(int i = 0; i < iPrewarnBeeps; i++)
-            {
-              system("/usr/local/bin/beep");
-              usleep(iPrewarnBeepPause * 1000);
+          if (StartTime - iPrewarnBeepTime < Now) {
+            if (bPrewarnBeep) {
+            for(int i = 0; i < iPrewarnBeeps; i++) {
+              if (!stop) SystemExec(cmd_pwb_on, true);
+              usleep(iPrewarnBeepOnDuration * 100000);
+              SystemExec(cmd_pwb_off, true);
+              usleep(iPrewarnBeepPause * 100000);
             }
           }
 
